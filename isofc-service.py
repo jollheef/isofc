@@ -252,7 +252,7 @@ def Transfer(device, UsbDirectory, Credentials):
     try:
         for directory in [ smbOut, smbIn, usbOut, usbIn ]:
             if os.path.islink(directory):
-                Log(str(directory) + "is symlink")
+                Log(str(directory) + " is symlink")
                 return False
         for _dir in os.listdir(smbOut):
             if getstatusoutput(["/bin/cp", "-R",
