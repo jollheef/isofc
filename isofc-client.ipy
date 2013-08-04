@@ -1,0 +1,281 @@
+#!/usr/bin/env ipy
+# -*- coding: utf-8 -*-
+## This file is part of the isofc application, released under
+## GNU General Public License, Version 3.0
+## See file COPYING for details.
+##
+## Author: Klementyev Mikhail <jollheef@riseup.net>
+#
+
+import clr
+clr.AddReference("System.Management")
+clr.AddReference("System.Windows.Forms")
+clr.AddReference("System.Drawing")
+from System.Windows.Forms import *
+from System.Management import ManagementObjectSearcher
+from System.Drawing import *
+from System import Convert, Text
+from System.IO import *
+import re, sys
+
+def cmd(command, args=""):
+    from System.Diagnostics import Process
+    p = Process()
+    p.StartInfo.UseShellExecute = False
+    p.StartInfo.RedirectStandardOutput = True
+    p.StartInfo.FileName = command
+    p.StartInfo.Arguments = args
+    p.Start()
+    p.WaitForExit()
+    return (p.StandardOutput.ReadToEnd(),
+            p.ExitCode)
+
+def osType():
+    if "nt" in sys.builtin_module_names:
+        return 'nt'
+
+def encrypt(opentext):
+    xmlKey = "<RSAKeyValue><Modulus>1kBmKLvD4UgBhLNuDlJ8D8L7s1dccldLuBKkRzp8fV33W5vfQPWoGJAojzp9DqP5je/qDewkX1sS+q4WYTIkZkxCARi68xNEhGf1rLLFSyAs0d6+VxQ3/WbZmlant/CvMHfyzv8co5zXx/3KxHw/ddb8TDUwCfWWzxmxocyo5js=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
+    from System.Security.Cryptography import RSACryptoServiceProvider
+    rsa = RSACryptoServiceProvider()
+    rsa.FromXmlString(xmlKey);
+    ciphertext = Convert.ToBase64String(rsa.Encrypt(
+        Text.Encoding.UTF8.GetBytes(opentext), False));
+    return ciphertext;
+
+def usbDevices():
+    if osType() == 'nt':
+        retlist = []
+        DiskDrives = ManagementObjectSearcher(
+            "SELECT DeviceID, PNPDeviceID "
+            + "FROM Win32_DiskDrive "
+            + "WHERE InterfaceType='USB'").Get()
+        for DiskDrive in DiskDrives:
+            DiskPartition = ManagementObjectSearcher(
+                "ASSOCIATORS OF {Win32_DiskDrive.DeviceID='" 
+                + DiskDrive['DeviceID'] + "'} "
+                + "WHERE AssocClass = Win32_DiskDriveToDiskPartition"
+            ).Get()
+            for DP in DiskPartition:
+                LogicalDisk = ManagementObjectSearcher(
+                    "ASSOCIATORS OF {Win32_DiskPartition.DeviceID='"
+                    + DP['DeviceID']
+                    + "'} WHERE AssocClass = Win32_LogicalDiskToPartition"
+                ).Get()
+                for LD in LogicalDisk:
+                    retlist.append((LD['Caption'],
+                                    re.search("[a-zA-Z0-9]*..$", 
+                                              DiskDrive['PNPDeviceID']
+                                          ).group(0).split('&')[0]))
+        return retlist
+    else:
+        Mount = cmd("mount")[0].split('\n')
+        Disks = []
+        for M in Mount:
+            Columns = M.split()
+            try:
+                if re.search('^/dev/', Columns[0]):
+                    Serial = cmd("udevadm",
+                                 "info --query=property --name=" \
+                                 + Columns[0])[0].split('\n')
+                    for Line in Serial:
+                        if re.search('^ID_SERIAL_SHORT=', Line):
+                            Serial = Line.split('=')[1]
+                            break
+                    Disks.append((Columns[2], Serial))
+            except IndexError:
+                pass
+        return Disks
+
+class MainForm(Form):
+    def __init__(self):
+        try:
+            self.Icon = Icon(Path.Combine(
+                Path.GetDirectoryName(sys.argv[0]),
+                "isofc-ico.ico"))
+        except IOError:
+            print "Could not find icon"
+        self.LoginTextBox = TextBox()
+        self.PasswordTextBox = TextBox()
+        self.button1 = Button()
+        self.label1 = Label()
+        self.label2 = Label()
+        self.PartitionsBox = ComboBox()
+        self.label3 = Label()
+        self.flowLayoutPanel1 = FlowLayoutPanel()
+        self.tableLayoutPanel1 = TableLayoutPanel()
+        self.flowLayoutPanel1.SuspendLayout()
+        self.tableLayoutPanel1.SuspendLayout()
+        self.SuspendLayout()
+        # 
+        # LoginTextBox
+        # 
+        self.LoginTextBox.Dock = DockStyle.Fill
+        self.LoginTextBox.Location = Point(92, 66)
+        self.LoginTextBox.Margin = Padding(4)
+        self.LoginTextBox.Name = "LoginTextBox"
+        self.LoginTextBox.Size = Size(174, 23)
+        self.LoginTextBox.TabIndex = 0
+        # 
+        # PasswordTextBox
+        # 
+        self.PasswordTextBox.Dock =DockStyle.Fill
+        self.PasswordTextBox.Location = Point(92, 118)
+        self.PasswordTextBox.Margin = Padding(4)
+        self.PasswordTextBox.Name = "PasswordTextBox"
+        self.PasswordTextBox.PasswordChar = '*'
+        self.PasswordTextBox.Size = Size(174, 23)
+        self.PasswordTextBox.TabIndex = 1
+        # 
+        # button1
+        # 
+        self.button1.Location = Point(4, 178)
+        self.button1.Margin = Padding(4)
+        self.button1.Name = "button1"
+        self.button1.Padding = Padding(0, 0, 0, 4)
+        self.button1.Size = Size(280, 28)
+        self.button1.TabIndex = 2
+        self.button1.Text = u"Создать аутентификационную метку"
+        self.button1.UseVisualStyleBackColor = True
+        self.button1.Click += self.onButtonClick
+        # 
+        # label1
+        # 
+        self.label1.AutoSize = True
+        self.label1.Location = Point(14, 62)
+        self.label1.Margin = Padding(4, 0, 4, 0)
+        self.label1.Name = "label1"
+        self.label1.Size = Size(48, 16)
+        self.label1.TabIndex = 3
+        self.label1.Text = u"Логин"
+        # 
+        # label2
+        # 
+        self.label2.AutoSize = True
+        self.label2.Location = Point(14, 114)
+        self.label2.Margin = Padding(4, 0, 4, 0)
+        self.label2.Name = "label2"
+        self.label2.Size = Size(56, 16)
+        self.label2.TabIndex = 3
+        self.label2.Text = u"Пароль"
+        # 
+        # PartitionsBox
+        # 
+        self.PartitionsBox.Dock = DockStyle.Fill
+        self.PartitionsBox.FormattingEnabled = True
+        self.PartitionsBox.Location = Point(91, 13)
+        self.PartitionsBox.Name = "PartitionsBox"
+        self.PartitionsBox.Size = Size(176, 24)
+        self.PartitionsBox.TabIndex = 5
+        self.PartitionsBox.DropDown += self.onDropDown
+        # 
+        # label3
+        # 
+        self.label3.AutoSize = True
+        self.label3.Location = Point(14, 10)
+        self.label3.Margin = Padding(4, 0, 4, 0)
+        self.label3.Name = "label3"
+        self.label3.Size = Size(55, 16)
+        self.label3.TabIndex = 3
+        self.label3.Text = u"Раздел"
+        # 
+        # flowLayoutPanel1
+        # 
+        self.flowLayoutPanel1.Controls.Add(self.tableLayoutPanel1)
+        self.flowLayoutPanel1.Controls.Add(self.button1)
+        self.flowLayoutPanel1.Dock = DockStyle.Fill
+        self.flowLayoutPanel1.Location = Point(10, 10)
+        self.flowLayoutPanel1.Name = "flowLayoutPanel1"
+        self.flowLayoutPanel1.Size = Size(286, 221)
+        self.flowLayoutPanel1.TabIndex = 6
+        # 
+        # tableLayoutPanel1
+        # 
+        self.tableLayoutPanel1.ColumnCount = 2
+        self.tableLayoutPanel1.ColumnStyles.Add(ColumnStyle(SizeType.Percent, 30))
+        self.tableLayoutPanel1.ColumnStyles.Add(ColumnStyle(SizeType.Percent, 70))
+        self.tableLayoutPanel1.Controls.Add(self.label3, 0, 0)
+        self.tableLayoutPanel1.Controls.Add(self.label2, 0, 2)
+        self.tableLayoutPanel1.Controls.Add(self.label1, 0, 1)
+        self.tableLayoutPanel1.Controls.Add(self.LoginTextBox, 1, 1)
+        self.tableLayoutPanel1.Controls.Add(self.PasswordTextBox, 1, 2)
+        self.tableLayoutPanel1.Controls.Add(self.PartitionsBox, 1, 0)
+        self.tableLayoutPanel1.Location = Point(3, 3)
+        self.tableLayoutPanel1.Name = "tableLayoutPanel1"
+        self.tableLayoutPanel1.Padding = Padding(10, 10, 10, 0)
+        self.tableLayoutPanel1.RowCount = 3
+        self.tableLayoutPanel1.RowStyles.Add(RowStyle(SizeType.Percent, 33.33333))
+        self.tableLayoutPanel1.RowStyles.Add(RowStyle(SizeType.Percent, 33.33333))
+        self.tableLayoutPanel1.RowStyles.Add(RowStyle(SizeType.Percent, 33.33333))
+        self.tableLayoutPanel1.Size = Size(280, 168)
+        self.tableLayoutPanel1.TabIndex = 6
+        # 
+        # Form1
+        # 
+        self.AutoScaleDimensions = SizeF(8, 16)
+        self.AutoScaleMode = AutoScaleMode.Font
+        self.ClientSize = Size(306, 241)
+        self.Controls.Add(self.flowLayoutPanel1)
+        self.Font = Font("Verdana", 9.75, FontStyle.Regular, GraphicsUnit.Point, 204)
+        self.FormBorderStyle = FormBorderStyle.FixedSingle
+        self.Margin = Padding(4)
+        self.MaximizeBox = False
+        self.Name = "Form1"
+        self.Padding = Padding(10)
+        self.Text = "isofc-client"
+        self.flowLayoutPanel1.ResumeLayout(False)
+        self.tableLayoutPanel1.ResumeLayout(False)
+        self.tableLayoutPanel1.PerformLayout()
+        self.ResumeLayout(False)
+    
+    def onButtonClick(self, sender, args):
+        if self.LoginTextBox.Text.Trim().Length == 0 \
+           or self.PasswordTextBox.Text.Trim().Length == 0 \
+           or self.PartitionsBox.SelectedItem == None:
+            MessageBox.Show(u"Заполните все поля")
+            return
+        Login = self.LoginTextBox.Text
+        Password = self.PasswordTextBox.Text
+        Partition = self.PartitionsBox.SelectedItem.ToString()
+        for Device in usbDevices():
+            if Device[0] == Partition:
+                SerialNumber = Device[1]
+        if osType() == 'nt':
+            CredentialsPath = Partition + "\\.isofc_credentials";
+        else:
+            CredentialsPath = Partition + "/.isofc_credentials";
+
+        Credentials = encrypt("{\"Serial\": \"" + SerialNumber \
+                              + "\", \"Password\": \"" + Password \
+                              + "\", \"Login\": \"" + Login + "\"}");
+        try:
+            if File.Exists(CredentialsPath):
+                File.SetAttributes(
+                    CredentialsPath, FileAttributes.Normal)
+            with StreamWriter(CredentialsPath) as writer:
+                writer.WriteLine(Credentials)
+            File.SetAttributes(
+                CredentialsPath,
+                FileAttributes.Archive \
+                and FileAttributes.Hidden \
+                and FileAttributes.ReadOnly)
+            if osType() == 'nt':
+                Dirs = [ "\\out", "\\in" ]
+            else:
+                Dirs = [ "/out", "/in" ]
+            for D in Dirs:
+                Dir = Partition + D 
+                if not Directory.Exists(Dir):
+                    Directory.CreateDirectory(Dir);
+        except Exception as ee:
+            MessageBox.Show("error: " + ee.ToString())
+            return
+        MessageBox.Show(u"Метка создана успешно.");
+
+    def onDropDown(self, sender, args):
+        self.PartitionsBox.Items.Clear()
+        for Device in usbDevices():
+            self.PartitionsBox.Items.Add(Device[0])
+
+if __name__ == '__main__':
+    Application.Run(MainForm())
