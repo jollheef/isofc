@@ -3,7 +3,7 @@ ISOFC
 
 ### Deb-based(Debian, Ubuntu etc.)
 
-    $ sudo apt-get install git ironpython
+    $ sudo apt-get install git libmono-i18n2.0-cil ironpython
     $ git clone https://github.com/jollheef/isofc/
     $ ipy ./isofc/isofc-client.ipy
 
