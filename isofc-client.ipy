@@ -35,13 +35,13 @@ def osType():
         return 'nt'
 
 def encrypt(opentext):
-    xmlKey = "<RSAKeyValue><Modulus>1kBmKLvD4UgBhLNuDlJ8D8L7s1dccldLuBKkRzp8fV33W5vfQPWoGJAojzp9DqP5je/qDewkX1sS+q4WYTIkZkxCARi68xNEhGf1rLLFSyAs0d6+VxQ3/WbZmlant/CvMHfyzv8co5zXx/3KxHw/ddb8TDUwCfWWzxmxocyo5js=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
+    xmlKey = "<RSAKeyValue><Modulus>1kBmKLvD4UgBhLNuDlJ8D8L7s1dccldLuBKkRzp8fV33W5vfQPWoGJAojzp9DqP5je/qDewkX1sS+q4WYTIkZkxCARi68xNEhGf1rLLFSyAs0d6+VxQ3/WbZmlant/CvMHfyzv8co5zXx/3KxHw/ddb8TDUwCfWWzxmxocyo5js=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>"
     from System.Security.Cryptography import RSACryptoServiceProvider
     rsa = RSACryptoServiceProvider()
-    rsa.FromXmlString(xmlKey);
+    rsa.FromXmlString(xmlKey)
     ciphertext = Convert.ToBase64String(rsa.Encrypt(
-        Text.Encoding.UTF8.GetBytes(opentext), False));
-    return ciphertext;
+        Text.Encoding.UTF8.GetBytes(opentext), False))
+    return ciphertext
 
 def usbDevices():
     if osType() == 'nt':
@@ -241,13 +241,13 @@ class MainForm(Form):
             if Device[0] == Partition:
                 SerialNumber = Device[1]
         if osType() == 'nt':
-            CredentialsPath = Partition + "\\.isofc_credentials";
+            CredentialsPath = Partition + "\\.isofc_credentials"
         else:
-            CredentialsPath = Partition + "/.isofc_credentials";
+            CredentialsPath = Partition + "/.isofc_credentials"
 
         Credentials = encrypt("{\"Serial\": \"" + SerialNumber \
                               + "\", \"Password\": \"" + Password \
-                              + "\", \"Login\": \"" + Login + "\"}");
+                              + "\", \"Login\": \"" + Login + "\"}")
         try:
             if File.Exists(CredentialsPath):
                 File.SetAttributes(
@@ -266,11 +266,11 @@ class MainForm(Form):
             for D in Dirs:
                 Dir = Partition + D 
                 if not Directory.Exists(Dir):
-                    Directory.CreateDirectory(Dir);
+                    Directory.CreateDirectory(Dir)
         except Exception as ee:
             MessageBox.Show("error: " + ee.ToString())
             return
-        MessageBox.Show(u"Метка создана успешно.");
+        MessageBox.Show(u"Метка создана успешно.")
 
     def onDropDown(self, sender, args):
         self.PartitionsBox.Items.Clear()
