@@ -8,12 +8,11 @@
 
 import sys, os, subprocess
 import pyudev
-import time, random
+import time
 import simplejson as json
-import shutil
 import re
 from threading import Thread, Lock, current_thread 
-from gi.repository import Gtk, GObject, Gdk
+from gi.repository import Gtk, GObject
 
 StatusMsg = {
     'Free' : 'Свободен',
@@ -308,7 +307,6 @@ def UsbUmount(device):
 def getstatusoutput(cmd, _shell=True): 
     """Return (status, output) of executing cmd in a shell."""
     """This new implementation should work on all platforms."""
-    import subprocess
     pipe = subprocess.Popen(cmd, shell=_shell,
                             universal_newlines=True,
                             stdout=subprocess.PIPE,
