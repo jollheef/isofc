@@ -169,6 +169,9 @@ def base64p(string):
         return False
 
 def Decrypt(ciphertext, path_to_private_key = "/home/michael/dev/sofc/private_key"):
+    if not os.path.isfile(path_to_private_key):
+        Log("Private key not found")
+        return 'Error'
     if not base64p(ciphertext):
         Log(".isofc_credentials is not base64, Ciphertext = '" \
             + str(ciphertext) + "'")
@@ -194,6 +197,7 @@ def CheckAuth(device, usbdirectory):
     Credentials = json.loads(Credentials) 
     serial = device['ID_SERIAL_SHORT']
     if serial != Credentials['Serial']:
+        Log("Serial ID in credentials is not equal serial ID in usb device")
         return [False, StatusMsg['WrongAuthFileError']]
     return [True, Credentials['Login'], Credentials['Password'],
             serial]
