@@ -75,7 +75,7 @@ def usbDevices():
             Columns = M.split()
             try:
                 if re.search('^/dev/', Columns[0]):
-                    Serial = cmd("udevadm",
+                    Serial = cmd("/sbin/udevadm",
                                  "info --query=property --name=" \
                                  + Columns[0])[0].split('\n')
                     for Line in Serial:
