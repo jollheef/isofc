@@ -13,6 +13,8 @@ import simplejson as json
 import re
 from threading import Thread, Lock, current_thread 
 from gi.repository import Gtk, GObject
+from os.path import dirname, abspath
+from sconfparser import SConfParser
 
 StatusMsg = {
     'Free' : 'Свободен',
@@ -153,13 +155,14 @@ def SmbNetFsClose(SmbDirectory):
                             SmbDirectory], False)[0] == 0
 
 def SmbAuthp(Credentials):
-    global SmbDirectory
+    global SmbDirectory, config
     Login, Password = Credentials[1], Credentials[2]
     if not re.match('^\d{2}[a-zA-Z]{2}\d{3}$', Login):
         Log("login contain unacceptable symbols")
         return False
     return getstatusoutput(["/bin/ls", SmbDirectory + "/" + Login \
-                            + ":" + Password + "@172.16.40.2/" \
+                            + ":" + Password
+                            + "@" + config.server_ip + "/" \
                             + Login], False)[0] == 0
     
 def base64p(string):
@@ -229,10 +232,10 @@ def list_files(startpath):
             Log('{}{}'.format(subindent, f))
 
 def Transfer(device, UsbDirectory, Credentials):
-    global SmbDirectory
+    global SmbDirectory, config
     Login, Password = Credentials[1], Credentials[2]
     UserDirectory = SmbDirectory + "/" + Login + ":" + Password \
-                    + "@172.16.40.2/" + Login
+                    + "@" + config.server_ip + "/" + Login
     smbIn = UserDirectory + "/in/"
     smbOut = UserDirectory + "/out/"
     usbIn = UsbDirectory + "/in/"
@@ -363,6 +366,12 @@ class MainThread(Thread):
         Log(self.observer)
 
 Log("isofc-service.py started")
+
+try:
+    config = SConfParser(dirname(abspath(__file__)) + "/isofc-service.conf")
+except SConfParserError:
+    Log("Error on load configuration file")
+    sys.exit(2)
 
 GObject.threads_init()
 
