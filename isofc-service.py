@@ -155,12 +155,13 @@ def SmbNetFsClose(SmbDirectory):
                             SmbDirectory], False)[0] == 0
 
 def SmbAuthp(Credentials):
-    global SmbDirectory, config
+    global config
     Login, Password = Credentials[1], Credentials[2]
     if not re.match('^\d{2}[a-zA-Z]{2}\d{3}$', Login):
         Log("login contain unacceptable symbols")
         return False
-    return getstatusoutput(["/bin/ls", SmbDirectory + "/" + Login \
+    return getstatusoutput(["/bin/ls", config.smbnetfs_directory
+                            + "/" + Login \
                             + ":" + Password
                             + "@" + config.server_ip + "/" \
                             + Login], False)[0] == 0
@@ -233,9 +234,10 @@ def list_files(startpath):
             Log('{}{}'.format(subindent, f))
 
 def Transfer(device, UsbDirectory, Credentials):
-    global SmbDirectory, config
+    global config
     Login, Password = Credentials[1], Credentials[2]
-    UserDirectory = SmbDirectory + "/" + Login + ":" + Password \
+    UserDirectory = config.smbnetfs_directory + "/" + Login \
+                    + ":" + Password \
                     + "@" + config.server_ip + "/" + Login
     smbIn = UserDirectory + "/in/"
     smbOut = UserDirectory + "/out/"
@@ -381,10 +383,9 @@ Clients = []
 for PortNum in range(1,8):
     exec("Port" + str(PortNum) + "Lock" + ' = Lock()')
 Ports = []
-SmbDirectory = "/tmp/isofc-smbnetfs"
-if not SmbNetFsInit(SmbDirectory):
+if not SmbNetFsInit(config.smbnetfs_directory):
     Log("Cannot create smbnetfs")
-    SmbNetFsClose(SmbDirectory)
+    SmbNetFsClose(config.smbnetfs_directory)
     sys.exit(1)
 
 win = MainWindow()
@@ -394,7 +395,7 @@ thread.start()
 Gtk.main()
 
 thread.observer.stop()
-if not SmbNetFsClose(SmbDirectory):
+if not SmbNetFsClose(config.smbnetfs_directory):
     Log("Cannot umount smbnetfs, check this manually")
 Log(thread.observer)
 sys.exit(0)
