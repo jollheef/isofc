@@ -171,8 +171,9 @@ def base64p(string):
     else:
         return False
 
-def Decrypt(ciphertext, path_to_private_key = "/home/michael/dev/sofc/private_key"):
-    if not os.path.isfile(path_to_private_key):
+def Decrypt(ciphertext):
+    global config
+    if not os.path.isfile(config.private_key_path):
         Log("Private key not found")
         return 'Error'
     if not base64p(ciphertext):
@@ -181,7 +182,7 @@ def Decrypt(ciphertext, path_to_private_key = "/home/michael/dev/sofc/private_ke
         return 'Error'
     retcode, opentext =  getstatusoutput(
         "echo " + ciphertext + "|base64 -d|openssl rsautl -inkey " \
-        + path_to_private_key + " -decrypt")
+        + config.private_key_path + " -decrypt")
     Log("Retcode(decrypt): " + str(retcode))
     if retcode == 0:
         return opentext
