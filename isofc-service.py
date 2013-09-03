@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.2
 ## This file is part of the isofc application, released under
 ## GNU General Public License, Version 3.0
 ## See file COPYING for details.
