@@ -47,8 +47,12 @@ for PortNum in range(1,8):
          + '" size="x-large">' + StatusMsg['Free'] + '</span>"""')
     
 def Log(message):
-    print(str(time.strftime("[%d %b %Y %H:%M:%S] (")) + \
-          current_thread().name + ") " + str(message))
+    global config
+    log_message = str(time.strftime("[%d %b %Y %H:%M:%S] (")) + \
+                  current_thread().name + ") " + str(message)
+    print(log_message)
+    with open(config.log_filepath, "a+") as f:
+        f.write(log_message + "\n")
 
 def DeviceHandler(action, device):
     try:
@@ -368,13 +372,13 @@ class MainThread(Thread):
         self.observer.start()
         Log(self.observer)
 
-Log("isofc-service.py started")
-
 try:
     config = SConfParser(dirname(abspath(__file__)) + "/isofc-service.conf")
 except SConfParserError:
     Log("Error on load configuration file")
     sys.exit(2)
+
+Log("isofc-service.py started")
 
 GObject.threads_init()
 
