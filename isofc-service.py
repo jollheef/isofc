@@ -333,10 +333,13 @@ def getstatusoutput(cmd, _shell=True):
 
 class MainWindow(Gtk.Window):
     def __init__(self):
+        global config
         self.builder = Gtk.Builder()
         self.builder.add_from_file("isofc-service.glade")
         self.window = self.builder.get_object("MainWindow")
         self.window.show_all()
+        x, y = map(int, config.screen_resolution.split('x'))
+        self.window.resize(x, y)
         self.window.connect("delete-event", Gtk.main_quit)
 
         self.timeout_id = GObject.timeout_add(1000,
