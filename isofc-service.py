@@ -147,7 +147,13 @@ def DeviceHandler(action, device):
                   StatusClrs['Normal'])
 
 def SmbNetFsInit(SmbDirectory):
-    os.makedirs(SmbDirectory, exist_ok=True)
+    try:
+        os.makedirs(SmbDirectory, exist_ok=True)
+    except OSError as e:
+        if e.errno == 17:
+            SmbNetFsClose(SmbDirectory)
+        else:
+            raise
     retcode, output = getstatusoutput(["/usr/bin/smbnetfs",
                                        SmbDirectory], False)
     Log("Smbnetfs init: " + "retcode: " + str(retcode) + ", " \
