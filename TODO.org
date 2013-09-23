@@ -1,3 +1,7 @@
 * isofc-service.py
 
 ** Приведение кода в соответствие с pep8
+
+** clamav
+
+** exfat
