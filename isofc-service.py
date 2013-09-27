@@ -55,7 +55,7 @@ def Log(message):
         f.write(log_message + "\n")
 
 def DeviceHandler(action, device):
-    getstatusoutput(["xset", "dpms", "force", "on"], False)
+    getstatusoutput(["xset", "dpms", "on"], False)
     try:
         Log("Port: " + str(Port(device)) + ", "\
             + "Action: " + str(action) + ", " \
