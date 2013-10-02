@@ -55,7 +55,8 @@ def Log(message):
         f.write(log_message + "\n")
 
 def DeviceHandler(action, device):
-    getstatusoutput(["xset", "dpms", "on"], False)
+    getstatusoutput(["xset", "-dpms"], False)
+    getstatusoutput(["xset", "+dpms"], False)
     try:
         Log("Port: " + str(Port(device)) + ", "\
             + "Action: " + str(action) + ", " \
@@ -205,8 +206,11 @@ def CheckAuth(device, usbdirectory):
     try:
         with open (usbdirectory + "/.isofc_credentials", "r") as file:
             data=file.read().replace('\n', '')
-    except FileNotFoundError:
-        return [False, StatusMsg['AuthFileNotFoundError']]
+    except IOError as exc:
+        if exc.errno == 2:
+            return [False, StatusMsg['AuthFileNotFoundError']]
+        else:
+            raise
     Credentials = Decrypt(data)
     if Credentials == 'Error':
         return [False, StatusMsg['WrongAuthFileError']]
