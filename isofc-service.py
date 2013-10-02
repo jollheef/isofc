@@ -169,7 +169,7 @@ def SmbNetFsClose(SmbDirectory):
 def SmbAuthp(Credentials):
     global config
     Login, Password = Credentials[1], Credentials[2]
-    if not re.match('^\d{2}[a-zA-Z]{2}\d{3}$', Login):
+    if not re.match('^[a-zA-Z0-9]*$', Login):
         Log("login contain unacceptable symbols")
         return False
     return getstatusoutput(["/bin/ls", config.smbnetfs_directory
