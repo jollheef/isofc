@@ -11,7 +11,7 @@ import pyudev
 import time
 import simplejson as json
 import re
-from threading import Thread, Lock, current_thread 
+from threading import Thread, Lock, current_thread
 from gi.repository import Gtk, GObject
 from os.path import dirname, abspath
 from sconfparser import SConfParser
@@ -45,7 +45,7 @@ for PortNum in range(1,8):
     Port = "Port" + str(PortNum) + "Status"
     exec(Port + ' = """<span foreground="' + StatusClrs['Normal'] \
          + '" size="x-large">' + StatusMsg['Free'] + '</span>"""')
-    
+
 def Log(message):
     global config
     log_message = str(time.strftime("[%d %b %Y %H:%M:%S] (")) + \
@@ -177,7 +177,7 @@ def SmbAuthp(Credentials):
                             + ":" + Password
                             + "@" + config.server_ip + "/" \
                             + Login], False)[0] == 0
-    
+
 def base64p(string):
     if re.match('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$', string):
         return True
@@ -214,7 +214,7 @@ def CheckAuth(device, usbdirectory):
     Credentials = Decrypt(data)
     if Credentials == 'Error':
         return [False, StatusMsg['WrongAuthFileError']]
-    Credentials = json.loads(Credentials) 
+    Credentials = json.loads(Credentials)
     serial = device['ID_SERIAL_SHORT']
     if serial != Credentials['Serial']:
         Log("Serial ID in credentials (" + str(serial)
@@ -250,16 +250,30 @@ def list_files(startpath):
         for f in files:
             Log('{}{}'.format(subindent, f))
 
+def directoryList(path, regex='.*'):
+    return [ o for o in os.listdir(path)
+            if os.path.isdir(os.path.join(path,o))
+            and re.findall(regex, o) ]
+
+def get_in_out(root_path):
+    ins = directoryList(root_path, '((?i)in)')
+    outs = directoryList(root_path, '((?i)out)')
+    ins.sort(reverse=True)
+    outs.sort(reverse=True)
+    return (ins[0], outs[0])
+
 def Transfer(device, UsbDirectory, Credentials):
     global config
     Login, Password = Credentials[1], Credentials[2]
     UserDirectory = config.smbnetfs_directory + "/" + Login \
                     + ":" + Password \
                     + "@" + config.server_ip + "/" + Login
-    smbIn = UserDirectory + "/in/"
-    smbOut = UserDirectory + "/out/"
-    usbIn = UsbDirectory + "/in/"
-    usbOut = UsbDirectory + "/out/"
+    In, Out = get_in_out(UserDirectory)
+    smbIn = UserDirectory + In
+    smbOut = UserDirectory + Out
+    In, Out = get_in_out(UsbDirectory)
+    usbIn = UsbDirectory + In
+    usbOut = UsbDirectory + Out
     if Status(device) != StatusMsg['Free']:
         StatusSet(device, StatusMsg['Copying'],
                   StatusClrs['Copying'])
@@ -302,7 +316,7 @@ def Transfer(device, UsbDirectory, Credentials):
         Log(str(sys.exc_info()[1]))
         pass
     return retcodeU + retcodeD == 0
-    
+
 def Port(device):
     return {
         '4': 7,
@@ -331,14 +345,14 @@ def UsbUmount(device):
                       StatusClrs['DisconnectPlease'])
     return retval
 
-def getstatusoutput(cmd, _shell=True): 
+def getstatusoutput(cmd, _shell=True):
     """Return (status, output) of executing cmd in a shell."""
     """This new implementation should work on all platforms."""
     pipe = subprocess.Popen(cmd, shell=_shell,
                             universal_newlines=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
-    output = str.join("", pipe.stdout.readlines()) 
+    output = str.join("", pipe.stdout.readlines())
     sts = pipe.wait()
     if sts is None:
         sts = 0
@@ -367,7 +381,7 @@ class MainWindow(Gtk.Window):
         for PortNum in range(1,8):
             Port = "Port" + str(PortNum) + "Status"
             self.builder.get_object(Port).set_markup(eval(Port))
-        return True    
+        return True
 
 class MainThread(Thread):
     def __init__(self, _win):
