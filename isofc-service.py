@@ -256,14 +256,22 @@ def list_files(startpath):
 def directoryList(path, regex='.*'):
     return [ o for o in os.listdir(path)
             if os.path.isdir(os.path.join(path,o))
-            and re.findall(regex, o) ]
+            and re.match(regex, o) ]
 
 def get_in_out(root_path):
-    ins = directoryList(root_path, '((?i)in)')
-    outs = directoryList(root_path, '((?i)out)')
+    ins = directoryList(root_path, '(?i)in')
+    outs = directoryList(root_path, '(?i)out')
     ins.sort(reverse=True)
     outs.sort(reverse=True)
-    return (ins[0], outs[0])
+    try:
+        _in = ins[0]
+    except IndexError:
+        _in = "in"
+    try:
+        _out = outs[0]
+    except IndexError:
+        _out = "out"
+    return ("/" + _in + "/", "/" + _out + "/")
 
 def Transfer(device, UsbDirectory, Credentials):
     global config
