@@ -214,8 +214,11 @@ def CheckAuth(device, usbdirectory):
     Credentials = Decrypt(data)
     if Credentials == 'Error':
         return [False, StatusMsg['WrongAuthFileError']]
-    Credentials = json.loads(Credentials)
-    serial = device['ID_SERIAL_SHORT']
+    try:
+        Credentials = json.loads(Credentials)
+        serial = device['ID_SERIAL_SHORT']
+    except:
+        return [False, StatusMsg['WrongAuthFileError']]
     if serial != Credentials['Serial']:
         Log("Serial ID in credentials (" + str(serial)
             + ") is not equal serial ID in usb device ("
