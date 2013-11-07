@@ -259,8 +259,8 @@ def directoryList(path, regex='.*'):
             and re.match(regex, o) ]
 
 def get_in_out(root_path):
-    ins = directoryList(root_path, '(?i)in')
-    outs = directoryList(root_path, '(?i)out')
+    ins = directoryList(root_path, '^(?i)in$')
+    outs = directoryList(root_path, '^(?i)out$')
     ins.sort(reverse=True)
     outs.sort(reverse=True)
     try:
