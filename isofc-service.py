@@ -277,7 +277,15 @@ def get_in_out(root_path):
         _out = outs[0]
     except IndexError:
         _out = "out"
-    return ("/" + _in + "/", "/" + _out + "/")
+    return (root_path + "/" + _in + "/",
+            root_path + "/" + _out + "/")
+
+def do_admin_work(usb_in):
+    global config
+    getstatusoutput(["/bin/cp",
+                     config.log_filepath,
+                     usb_in + "/"],
+                    _shell=False)
 
 def Transfer(device, UsbDirectory, Credentials):
     global config
@@ -285,12 +293,8 @@ def Transfer(device, UsbDirectory, Credentials):
     UserDirectory = config.smbnetfs_directory + "/" + Login \
                     + ":" + Password \
                     + "@" + config.server_ip + "/" + Login
-    In, Out = get_in_out(UserDirectory)
-    smbIn = UserDirectory + In
-    smbOut = UserDirectory + Out
-    In, Out = get_in_out(UsbDirectory)
-    usbIn = UsbDirectory + In
-    usbOut = UsbDirectory + Out
+    smbIn, smbOut = get_in_out(UserDirectory)
+    usbIn, usbOut = get_in_out(UsbDirectory)
     if Status(device) != StatusMsg['Free']:
         StatusSet(device, StatusMsg['Copying'],
                   StatusClrs['Copying'])
@@ -300,6 +304,12 @@ def Transfer(device, UsbDirectory, Credentials):
         except:
             Log(str(sys.exc_info()[1]))
             pass
+    try:
+        if Login == config.admin:
+            Log("Admin login: " + Login)
+            do_admin_work(usb_in)
+    except:
+        Log("Error: admin login fail, may be config does not 'admin'?")
     retcodeU = 0
     retcodeD = 0
     Log("List of smb/Out:")
