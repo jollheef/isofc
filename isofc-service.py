@@ -188,7 +188,7 @@ def SmbAuthp(device, Credentials):
         Log("login contain unacceptable symbols")
         return False
     return getstatusoutput(["/usr/bin/timeout",
-                            # No correct work, check this
+                            # This does not work correctly
                             "--kill-after=10",
                             "10",
                             "/bin/ls", config.smbnetfs_directory
