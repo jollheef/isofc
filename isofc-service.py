@@ -25,6 +25,7 @@ StatusMsg = {
     'MountError' : 'Ошибка монтирования',
     'CopyError' : 'Ошибка копирования',
     'UmountError': 'Ошибка размонтирования',
+    'Auth': 'Аутентификация',
     'AuthFileNotFoundError' : 'Ошибка: Нет файла аутентификации',
     'AuthSmbError' : 'Ошибка: проверьте логин и пароль.',
     'MoreOneLogin' : 'Ошибка: логин уже используется',
@@ -120,7 +121,7 @@ def DeviceHandler(action, device):
             else:
                 Clients.append([device.device_node, Credentials[1]])
                 ClientsLock.release()
-                if SmbAuthp(Credentials):
+                if SmbAuthp(device, Credentials):
                     if not Transfer(device,
                                     usbdirectory,
                                     Credentials):
@@ -172,7 +173,9 @@ def SmbNetFsClose(SmbDirectory):
     return getstatusoutput(["/bin/fusermount", "-u",
                             SmbDirectory], False)[0] == 0
 
-def SmbAuthp(Credentials):
+def SmbAuthp(device, Credentials):
+    StatusSet(device, StatusMsg['Auth'],
+              StatusClrs['Normal'])
     global config
     Login, Password = Credentials[1], Credentials[2]
     if not re.match('^[a-zA-Z0-9]*$', Login):
