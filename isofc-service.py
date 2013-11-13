@@ -288,6 +288,7 @@ def do_admin_work(usb_in):
                     _shell=False)
 
 def Transfer(device, UsbDirectory, Credentials):
+    Log("Start transfer")
     global config
     Login, Password = Credentials[1], Credentials[2]
     UserDirectory = config.smbnetfs_directory + "/" + Login \
@@ -458,9 +459,6 @@ try:
     Log(thread.observer)
     sys.exit(0)
 
-except SConfParserError:
-    Log("Error on load configuration file")
-    sys.exit(2)
 except Exception as e:
     Log("Error: " + str(e))
 
