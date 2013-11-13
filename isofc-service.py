@@ -308,8 +308,8 @@ def Transfer(device, UsbDirectory, Credentials):
         if Login == config.admin:
             Log("Admin login: " + Login)
             do_admin_work(usb_in)
-    except:
-        Log("Error: admin login fail, may be config does not 'admin'?")
+    except Exception as e:
+        Log("Error while admin work: " + str(e))
     retcodeU = 0
     retcodeD = 0
     Log("List of smb/Out:")
