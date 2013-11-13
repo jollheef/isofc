@@ -54,6 +54,12 @@ def Log(message):
     with open(config.log_filepath, "a+") as f:
         f.write(log_message + "\n")
 
+def DeviceHandlerExceptionWrapper(action, device):
+    try:
+        DeviceHandler(action, device)
+    except Exception as e:
+        Log(str(e))
+
 def DeviceHandler(action, device):
     getstatusoutput(["xset", "-dpms"], False)
     getstatusoutput(["xset", "+dpms"], False)
@@ -406,7 +412,7 @@ class MainThread(Thread):
     observer = pyudev.MonitorObserver(
         monitor,
         lambda action, device: Thread(
-            target=DeviceHandler,
+            target=DeviceHandlerExceptionWrapper,
             args=[action, device]).start())
 
     def run(self):
@@ -415,32 +421,36 @@ class MainThread(Thread):
 
 try:
     config = SConfParser(dirname(abspath(__file__)) + "/isofc-service.conf")
+
+    Log("isofc-service.py started")
+
+    GObject.threads_init()
+
+    ClientsLock = Lock()
+    Clients = []
+    for PortNum in range(1,8):
+        exec("Port" + str(PortNum) + "Lock" + ' = Lock()')
+    Ports = []
+    if not SmbNetFsInit(config.smbnetfs_directory):
+        Log("Cannot create smbnetfs")
+        SmbNetFsClose(config.smbnetfs_directory)
+        sys.exit(1)
+
+    win = MainWindow()
+
+    thread = MainThread(win)
+    thread.start()
+    Gtk.main()
+
+    thread.observer.stop()
+    if not SmbNetFsClose(config.smbnetfs_directory):
+        Log("Cannot umount smbnetfs, check this manually")
+    Log(thread.observer)
+    sys.exit(0)
+
 except SConfParserError:
     Log("Error on load configuration file")
     sys.exit(2)
+except Exception as e:
+    Log("Error: " + str(e))
 
-Log("isofc-service.py started")
-
-GObject.threads_init()
-
-ClientsLock = Lock()
-Clients = []
-for PortNum in range(1,8):
-    exec("Port" + str(PortNum) + "Lock" + ' = Lock()')
-Ports = []
-if not SmbNetFsInit(config.smbnetfs_directory):
-    Log("Cannot create smbnetfs")
-    SmbNetFsClose(config.smbnetfs_directory)
-    sys.exit(1)
-
-win = MainWindow()
-
-thread = MainThread(win)
-thread.start()
-Gtk.main()
-
-thread.observer.stop()
-if not SmbNetFsClose(config.smbnetfs_directory):
-    Log("Cannot umount smbnetfs, check this manually")
-Log(thread.observer)
-sys.exit(0)
