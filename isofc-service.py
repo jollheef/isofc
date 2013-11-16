@@ -298,7 +298,7 @@ def do_admin_work(usb_in):
     getstatusoutput(["/bin/cp",
                      config.log_filepath,
                      usb_in + "/"],
-                    _shell=False)
+                    shell=False)
 
 def Transfer(device, UsbDirectory, Credentials):
     Log("Start transfer")
@@ -338,19 +338,19 @@ def Transfer(device, UsbDirectory, Credentials):
         for _dir in os.listdir(smbOut):
             if getstatusoutput(["/bin/cp", "-R",
                                 smbOut + _dir, usbIn + _dir],
-                               _shell=False)[0] == 0:
+                               shell=False)[0] == 0:
                 retcodeU = getstatusoutput(["/bin/rm",
                                             smbOut + _dir, "-rf"],
-                                           _shell=False)[0]
+                                           shell=False)[0]
             else:
                 retcodeU = 1
         for _dir in os.listdir(usbOut):
             if getstatusoutput(["/bin/cp", "-R",
                                 usbOut + _dir, smbIn + _dir],
-                               _shell=False)[0] == 0:
+                               shell=False)[0] == 0:
                 retcodeD = getstatusoutput(["/bin/rm",
                                             usbOut + _dir, "-rf"],
-                                           _shell=False)[0]
+                                           shell=False)[0]
             else:
                 retcodeD = 1
     except:
@@ -386,15 +386,22 @@ def UsbUmount(device):
                       StatusClrs['DisconnectPlease'])
     return retval
 
-def getstatusoutput(cmd, _shell=True):
+def getstatusoutput(cmd, shell=True, timeout=0):
     """Return (status, output) of executing cmd in a shell."""
     """This new implementation should work on all platforms."""
-    pipe = subprocess.Popen(cmd, shell=_shell,
+    pipe = subprocess.Popen(cmd, shell=shell,
                             universal_newlines=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
-    output = str.join("", pipe.stdout.readlines())
+    deadline = time.time()+timeout
+    if timeout:
+        while pipe.poll() == None and time.time() < deadline:
+            time.sleep(.250)
+        if pipe.poll() == None:
+            pipe.terminate()
+            return 256, ""
     sts = pipe.wait()
+    output = str.join("", pipe.stdout.readlines())
     if sts is None:
         sts = 0
     return sts, output
