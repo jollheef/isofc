@@ -122,7 +122,9 @@ def DeviceHandler(action, device):
             else:
                 Clients.append([device.device_node, Credentials[1]])
                 ClientsLock.release()
-                smb_auth_result = SmbAuthp(device, Credentials)
+                StatusSet(device, StatusMsg['Connecting'],
+                          StatusClrs['Normal'])
+                smb_auth_result = SmbAuthp(Credentials)
                 if smb_auth_result == 0:
                     if not Transfer(device,
                                     usbdirectory,
@@ -132,7 +134,7 @@ def DeviceHandler(action, device):
                                   StatusClrs['Error'])
                     else:
                         Log(str(device.device_node) + " All good")
-                elif smb_auth_result > 124: # timeout
+                elif smb_auth_result == 256: # timeout
                     StatusSet(device,
                               StatusMsg['ConnectingError'],
                               StatusClrs['Error'])
@@ -179,23 +181,17 @@ def SmbNetFsClose(SmbDirectory):
     return getstatusoutput(["/bin/fusermount", "-u",
                             SmbDirectory], False)[0] == 0
 
-def SmbAuthp(device, Credentials):
-    StatusSet(device, StatusMsg['Connecting'],
-              StatusClrs['Normal'])
+def SmbAuthp(Credentials):
     global config
     Login, Password = Credentials[1], Credentials[2]
     if not re.match('^[a-zA-Z0-9]*$', Login):
         Log("login contain unacceptable symbols")
         return False
-    return getstatusoutput(["/usr/bin/timeout",
-                            "--foreground",
-                            "--kill-after=10",
-                            "10",
-                            "/bin/ls", config.smbnetfs_directory
+    return getstatusoutput(["/bin/ls", config.smbnetfs_directory
                             + "/" + Login \
                             + ":" + Password
                             + "@" + config.server_ip + "/" \
-                            + Login], False)[0]
+                            + Login], False, timeout=20)[0]
 
 def base64p(string):
     if re.match('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$', string):
