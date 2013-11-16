@@ -317,7 +317,7 @@ def Transfer(device, UsbDirectory, Credentials):
     try:
         if Login == config.admin:
             Log("Admin login: " + Login)
-            do_admin_work(usb_in)
+            do_admin_work(usbIn)
     except Exception as e:
         Log("Error while admin work: " + str(e))
     retcodeU = 0
