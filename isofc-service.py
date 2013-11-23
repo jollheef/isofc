@@ -193,7 +193,7 @@ def SmbAuthp(Credentials):
     global config
     Login, Password = Credentials[1], Credentials[2]
     if not re.match('^[a-zA-Z0-9]*$', Login):
-        Log("login contain unacceptable symbols")
+        Log("login contain unacceptable symbols: " + str(Login))
         return False
     return getstatusoutput(["/bin/ls", config.smbnetfs_directory
                             + "/" + Login \
