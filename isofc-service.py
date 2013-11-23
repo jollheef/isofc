@@ -6,7 +6,9 @@
 ## Author: Klementyev Mikhail <jollheef@riseup.net>
 #
 
-import sys, os, subprocess
+import sys
+import os
+import subprocess
 import pyudev
 import time
 import simplejson as json
@@ -17,44 +19,46 @@ from os.path import dirname, abspath
 from sconfparser import SConfParser
 
 StatusMsg = {
-    'Free' : 'Свободен',
-    'Connected' : 'Подключен',
-    'Copying' : 'Идет копирование',
+    'Free': 'Свободен',
+    'Connected': 'Подключен',
+    'Copying': 'Идет копирование',
     # Warn: all *Error must contain 'Error' value (for ex.: 'Ошибка')
-    'Error' : 'Ошибка',
-    'MountError' : 'Ошибка монтирования',
-    'CopyError' : 'Ошибка копирования',
+    'Error': 'Ошибка',
+    'MountError': 'Ошибка монтирования',
+    'CopyError': 'Ошибка копирования',
     'UmountError': 'Ошибка размонтирования',
     'Connecting': 'Соединение с сервером',
     'ConnectingError': 'Ошибка соединения с сервером',
-    'AuthFileNotFoundError' : 'Ошибка: Нет файла аутентификации',
-    'AuthSmbError' : 'Ошибка: проверьте логин и пароль.',
-    'MoreOneLogin' : 'Ошибка: логин уже используется',
-    'WrongAuthFileError' : 'Ошибка: Неверный файл аутентификации',
+    'AuthFileNotFoundError': 'Ошибка: Нет файла аутентификации',
+    'AuthSmbError': 'Ошибка: проверьте логин и пароль.',
+    'MoreOneLogin': 'Ошибка: логин уже используется',
+    'WrongAuthFileError': 'Ошибка: Неверный файл аутентификации',
     'TransferError': 'Ошибка передачи файлов',
-    'DisconnectPlease' : 'Можно извлекать',
-    'DisconnectAddition' : ', извлеките устройство',
+    'DisconnectPlease': 'Можно извлекать',
+    'DisconnectAddition': ', извлеките устройство',
 }
 
 StatusClrs = {
-    'Normal' : 'white',
-    'Error' : 'red',
-    'Copying' : 'yellow',
-    'DisconnectPlease' : 'green',
+    'Normal': 'white',
+    'Error': 'red',
+    'Copying': 'yellow',
+    'DisconnectPlease': 'green',
 }
 
-for PortNum in range(1,8):
+for PortNum in range(1, 8):
     Port = "Port" + str(PortNum) + "Status"
-    exec(Port + ' = """<span foreground="' + StatusClrs['Normal'] \
+    exec(Port + ' = """<span foreground="' + StatusClrs['Normal']
          + '" size="x-large">' + StatusMsg['Free'] + '</span>"""')
+
 
 def Log(message):
     global config
-    log_message = str(time.strftime("[%d %b %Y %H:%M:%S] (")) + \
-                  current_thread().name + ") " + str(message)
+    log_message = str(str(time.strftime("[%d %b %Y %H:%M:%S] ("))
+                      + current_thread().name + ") " + str(message))
     print(log_message)
     with open(config.log_filepath, "a+") as f:
         f.write(log_message + "\n")
+
 
 def DeviceHandlerExceptionWrapper(action, device):
     try:
@@ -62,16 +66,17 @@ def DeviceHandlerExceptionWrapper(action, device):
     except Exception as e:
         Log(str(e))
 
+
 def DeviceHandler(action, device):
     getstatusoutput(["xset", "-dpms"], False)
     getstatusoutput(["xset", "+dpms"], False)
     try:
-        Log("Port: " + str(Port(device)) + ", "\
-            + "Action: " + str(action) + ", " \
-            + "DEVNAME: " + str(device['DEVNAME']) + ", " \
+        Log("Port: " + str(Port(device)) + ", "
+            + "Action: " + str(action) + ", "
+            + "DEVNAME: " + str(device['DEVNAME']) + ", "
             + "ID_SERIAL: " + str(device['ID_SERIAL']) + " ")
     except:
-        Log("Fail on Port: " + str(Port(device)) + ", " \
+        Log("Fail on Port: " + str(Port(device)) + ", "
             + "Action: " + str(action))
         return None
     global Clients, Ports, ExitFlag
@@ -80,7 +85,8 @@ def DeviceHandler(action, device):
     if str(action) == "add":
         if len(str(device.device_node)) == 8:
             if sum(1 for _ in device.children) != 0:
-                Log(str(device.device_node) + " is not mount (partition table)")
+                Log(str(device.device_node)
+                    + " is not mount (partition table)")
                 return None
         exec(PortLock + '.acquire()', locals(), globals())
         if list(filter(lambda pt: pt == Port(device), Ports)):
@@ -102,14 +108,14 @@ def DeviceHandler(action, device):
             return None
         Log(str(device.device_node) + " mounted")
         Credentials = CheckAuth(device, usbdirectory)
-        if Credentials[0] != True:
+        if Credentials[0] is not True:
             StatusSet(device, Credentials[1],
                       StatusClrs['Error'])
             if Credentials[1] == StatusMsg['WrongAuthFileError']:
                 Ports.append(Port(device))
         else:
-            Log(str(device.device_node) + ", " \
-                + "Login: " + Credentials[1] + ", " \
+            Log(str(device.device_node) + ", "
+                + "Login: " + Credentials[1] + ", "
                 + "Serial: " + Credentials[3])
             Ports.append(Port(device))
             exec(PortLock + '.release()', locals(), globals())
@@ -134,7 +140,7 @@ def DeviceHandler(action, device):
                                   StatusClrs['Error'])
                     else:
                         Log(str(device.device_node) + " All good")
-                elif smb_auth_result == 256: # timeout
+                elif smb_auth_result == 256:  # timeout
                     StatusSet(device,
                               StatusMsg['ConnectingError'],
                               StatusClrs['Error'])
@@ -171,6 +177,7 @@ def DeviceHandler(action, device):
             except:
                 ExitFlag = True
 
+
 def SmbNetFsInit(SmbDirectory):
     try:
         os.makedirs(SmbDirectory, exist_ok=True)
@@ -181,13 +188,15 @@ def SmbNetFsInit(SmbDirectory):
             raise
     retcode, output = getstatusoutput(["/usr/bin/smbnetfs",
                                        SmbDirectory], False)
-    Log("Smbnetfs init: " + "retcode: " + str(retcode) + ", " \
+    Log("Smbnetfs init: " + "retcode: " + str(retcode) + ", "
         + "output: " + output)
     return output == ""
+
 
 def SmbNetFsClose(SmbDirectory):
     return getstatusoutput(["/bin/fusermount", "-u",
                             SmbDirectory], False)[0] == 0
+
 
 def SmbAuthp(Credentials):
     global config
@@ -196,16 +205,20 @@ def SmbAuthp(Credentials):
         Log("login contain unacceptable symbols: " + str(Login))
         return False
     return getstatusoutput(["/bin/ls", config.smbnetfs_directory
-                            + "/" + Login \
+                            + "/" + Login
                             + ":" + Password
-                            + "@" + config.server_ip + "/" \
+                            + "@" + config.server_ip + "/"
                             + Login], False, timeout=20)[0]
 
+
 def base64p(string):
-    if re.match('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$', string):
+    if re.match('^(?:[A-Za-z0-9+/]{4})*'
+                + '(?:[A-Za-z0-9+/]{2}=='
+                + '|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$', string):
         return True
     else:
         return False
+
 
 def Decrypt(ciphertext):
     global config
@@ -213,11 +226,11 @@ def Decrypt(ciphertext):
         Log("Private key not found")
         return 'Error'
     if not base64p(ciphertext):
-        Log(".isofc_credentials is not base64, Ciphertext = '" \
+        Log(".isofc_credentials is not base64, Ciphertext = '"
             + str(ciphertext) + "'")
         return 'Error'
-    retcode, opentext =  getstatusoutput(
-        "echo " + ciphertext + "|base64 -d|openssl rsautl -inkey " \
+    retcode, opentext = getstatusoutput(
+        "echo " + ciphertext + "|base64 -d|openssl rsautl -inkey "
         + config.private_key_path + " -decrypt")
     Log("Retcode(decrypt): " + str(retcode))
     if retcode == 0:
@@ -225,10 +238,11 @@ def Decrypt(ciphertext):
     else:
         return 'Error'
 
+
 def CheckAuth(device, usbdirectory):
     try:
-        with open (usbdirectory + "/.isofc_credentials", "r") as file:
-            data=file.read().replace('\n', '')
+        with open(usbdirectory + "/.isofc_credentials", "r") as file:
+            data = file.read().replace('\n', '')
     except IOError as exc:
         if exc.errno == 2:
             return [False, StatusMsg['AuthFileNotFoundError']]
@@ -250,22 +264,25 @@ def CheckAuth(device, usbdirectory):
     return [True, Credentials['Login'], Credentials['Password'],
             serial]
 
+
 def StatusSet(device, message, color):
-    Log("Change status " + str(device.device_node) + " to " \
-        + str(message) + " with " + str(color)  + " color")
-    for PortNum in range(1,8):
+    Log("Change status " + str(device.device_node) + " to "
+        + str(message) + " with " + str(color) + " color")
+    for PortNum in range(1, 8):
         _Port = "Port" + str(PortNum) + "Status"
         exec('global ' + _Port)
-    exec('Port' + str(Port(device)) + 'Status = """' \
-         + '<span foreground="' + color + '" size="x-large">' \
+    exec('Port' + str(Port(device)) + 'Status = """'
+         + '<span foreground="' + color + '" size="x-large">'
          + message + '</span>"""', locals(), globals())
 
+
 def Status(device):
-    for PortNum in range(1,8):
+    for PortNum in range(1, 8):
         _Port = "Port" + str(PortNum) + "Status"
         exec('global ' + _Port)
     return re.sub('<[^>]*>', '',
                   eval('Port' + str(Port(device)) + 'Status'))
+
 
 def list_files(startpath):
     for root, dirs, files in os.walk(startpath):
@@ -276,10 +293,12 @@ def list_files(startpath):
         for f in files:
             Log('{}{}'.format(subindent, f))
 
+
 def directoryList(path, regex='.*'):
-    return [ o for o in os.listdir(path)
-            if os.path.isdir(os.path.join(path,o))
-            and re.match(regex, o) ]
+    return [o for o in os.listdir(path)
+            if os.path.isdir(os.path.join(path, o))
+            and re.match(regex, o)]
+
 
 def get_in_out(root_path):
     ins = directoryList(root_path, '^(?i)in$')
@@ -296,6 +315,7 @@ def get_in_out(root_path):
         _out = "out"
     return (root_path + "/" + _in + "/",
             root_path + "/" + _out + "/")
+
 
 def update_files(usb_dir, files):
     global ExitFlag
@@ -317,7 +337,7 @@ def update_files(usb_dir, files):
                             + " " + dirname(abspath(__file__))
                             + "/" + f + ".BACKUP",
                             logging=True)
-            getstatusoutput("chmod 755 " 
+            getstatusoutput("chmod 755 "
                             + dirname(abspath(__file__))
                             + "/" + f,
                             logging=True)
@@ -331,8 +351,9 @@ def update_files(usb_dir, files):
         Log("Finish update: exit (wait for free all ports)")
         ExitFlag = True
 
+
 def gpg_decrypt(path_to_file):
-    orig_file =  path_to_file.replace('.gpg', '')
+    orig_file = path_to_file.replace('.gpg', '')
     getstatusoutput("rm " + orig_file)
     status, output = getstatusoutput("gpg " + path_to_file)
     Log("Status: " + str(status) + "; " + output.replace('\n', '; '))
@@ -344,6 +365,7 @@ def gpg_decrypt(path_to_file):
         Log("Gpg verify: bad sign")
         return False
 
+
 def do_admin_work(usb_in):
     global config
     getstatusoutput(["/bin/cp",
@@ -354,19 +376,20 @@ def do_admin_work(usb_in):
                           "isofc-service.conf",
                           "isofc-service.glade"])
 
+
 def Transfer(device, UsbDirectory, Credentials):
     Log("Start transfer")
     global config
     Login, Password = Credentials[1], Credentials[2]
-    UserDirectory = config.smbnetfs_directory + "/" + Login \
-                    + ":" + Password \
-                    + "@" + config.server_ip + "/" + Login
+    UserDirectory = str(config.smbnetfs_directory + "/" + Login
+                        + ":" + Password
+                        + "@" + config.server_ip + "/" + Login)
     smbIn, smbOut = get_in_out(UserDirectory)
     usbIn, usbOut = get_in_out(UsbDirectory)
     if Status(device) != StatusMsg['Free']:
         StatusSet(device, StatusMsg['Copying'],
                   StatusClrs['Copying'])
-    for _dir in [ smbIn, smbOut, usbIn, usbOut ]:
+    for _dir in [smbIn, smbOut, usbIn, usbOut]:
         try:
             os.makedirs(_dir, exist_ok=True)
         except Exception as e:
@@ -386,7 +409,7 @@ def Transfer(device, UsbDirectory, Credentials):
     Log("List of usb/Out:")
     list_files(usbOut)
     try:
-        for directory in [ smbOut, smbIn, usbOut, usbIn ]:
+        for directory in [smbOut, smbIn, usbOut, usbIn]:
             if os.path.islink(directory):
                 Log(str(directory) + " is symlink")
                 return False
@@ -413,6 +436,7 @@ def Transfer(device, UsbDirectory, Credentials):
         pass
     return retcodeU + retcodeD == 0
 
+
 def Port(device):
     return {
         '4': 7,
@@ -424,22 +448,25 @@ def Port(device):
         '5': 1,
     }[str(device.device_path)[46]]
 
+
 def UsbMount(device):
     retval, output = getstatusoutput("pmount " + device.device_node)
     return [retval, re.sub(r'dev', 'media', device.device_node)]
+
 
 def UsbUmount(device):
     retval, output = getstatusoutput("pumount " + device.device_node)
     if Status(device) != StatusMsg['Free']:
         if Status(device).find(StatusMsg['Error']) >= 0:
             StatusSet(device,
-                      Status(device) \
+                      Status(device)
                       + StatusMsg['DisconnectAddition'],
                       StatusClrs['Error'])
         else:
             StatusSet(device, StatusMsg['DisconnectPlease'],
                       StatusClrs['DisconnectPlease'])
     return retval
+
 
 def getstatusoutput(cmd, shell=True, timeout=0, logging=False):
     """Return (status, output) of executing cmd in a shell."""
@@ -450,9 +477,9 @@ def getstatusoutput(cmd, shell=True, timeout=0, logging=False):
                             stderr=subprocess.STDOUT)
     deadline = time.time()+timeout
     if timeout:
-        while pipe.poll() == None and time.time() < deadline:
+        while pipe.poll() is None and time.time() < deadline:
             time.sleep(.250)
-        if pipe.poll() == None:
+        if pipe.poll() is None:
             pipe.terminate()
             return 256, ""
     sts = pipe.wait()
@@ -462,6 +489,7 @@ def getstatusoutput(cmd, shell=True, timeout=0, logging=False):
     if logging and (sts != 0):
         Log(output)
     return sts, output
+
 
 class MainWindow(Gtk.Window):
     def __init__(self):
@@ -478,15 +506,16 @@ class MainWindow(Gtk.Window):
                                               self.on_timeout,
                                               None)
 
-        for PortNum in range(1,8):
+        for PortNum in range(1, 8):
             _Port = "Port" + str(PortNum) + "Status"
             exec('global ' + _Port)
 
     def on_timeout(self, user_data):
-        for PortNum in range(1,8):
+        for PortNum in range(1, 8):
             Port = "Port" + str(PortNum) + "Status"
             self.builder.get_object(Port).set_markup(eval(Port))
         return True
+
 
 class MainThread(Thread):
     def __init__(self, _win):
@@ -517,7 +546,7 @@ try:
     ExitFlag = False
     ClientsLock = Lock()
     Clients = []
-    for PortNum in range(1,8):
+    for PortNum in range(1, 8):
         exec("Port" + str(PortNum) + "Lock" + ' = Lock()')
     Ports = []
     if not SmbNetFsInit(config.smbnetfs_directory):
@@ -539,4 +568,3 @@ try:
 
 except Exception as e:
     Log("Error: " + str(e))
-
