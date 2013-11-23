@@ -74,7 +74,7 @@ def DeviceHandler(action, device):
         Log("Fail on Port: " + str(Port(device)) + ", " \
             + "Action: " + str(action))
         return None
-    global Clients, Ports
+    global Clients, Ports, ExitFlag
     PortLock = "Port" + str(Port(device)) + "Lock"
     exec('global ' + PortLock)
     if str(action) == "add":
@@ -162,6 +162,14 @@ def DeviceHandler(action, device):
             pass
         StatusSet(device, StatusMsg['Free'],
                   StatusClrs['Normal'])
+        if len(Ports) == 0 and ExitFlag:
+            ExitFlag = False
+            try:
+                global Gtk
+                Log("Gtk main_quit")
+                Gtk.main_quit()
+            except:
+                ExitFlag = True
 
 def SmbNetFsInit(SmbDirectory):
     try:
@@ -289,12 +297,62 @@ def get_in_out(root_path):
     return (root_path + "/" + _in + "/",
             root_path + "/" + _out + "/")
 
+def update_files(usb_dir, files):
+    global ExitFlag
+    flag = False
+    usb_dir = "/" + usb_dir + "/"
+    for f in files:
+        getstatusoutput("rm " + usb_dir + f)
+        if getstatusoutput("stat " + usb_dir + f + ".gpg")[0] != 0:
+            Log("file " + f + ".gpg" + " not found")
+            continue
+        if gpg_decrypt(usb_dir + f + ".gpg"):
+            Log("Start update " + f)
+            getstatusoutput("cp " + usb_dir + f + " "
+                            + dirname(abspath(__file__))
+                            + "/" + f,
+                            logging=True)
+            getstatusoutput("cp " + dirname(abspath(__file__))
+                            + "/" + f
+                            + " " + dirname(abspath(__file__))
+                            + "/" + f + ".BACKUP",
+                            logging=True)
+            getstatusoutput("chmod 755 " 
+                            + dirname(abspath(__file__))
+                            + "/" + f,
+                            logging=True)
+            getstatusoutput("rm " + usb_dir + f,
+                            logging=True)
+            getstatusoutput("mv " + usb_dir + f + ".gpg "
+                            + usb_dir + f + ".gpg.OLD",
+                            logging=True)
+            flag = True
+    if flag:
+        Log("Finish update: exit (wait for free all ports)")
+        ExitFlag = True
+
+def gpg_decrypt(path_to_file):
+    orig_file =  path_to_file.replace('.gpg', '')
+    getstatusoutput("rm " + orig_file)
+    status, output = getstatusoutput("gpg " + path_to_file)
+    Log("Status: " + str(status) + "; " + output.replace('\n', '; '))
+    if status == 0 and re.findall('ID ' + config.admin_rsa_id,
+                                  output.splitlines()[0]):
+        Log("Gpg verify: true sign")
+        return orig_file
+    else:
+        Log("Gpg verify: bad sign")
+        return False
+
 def do_admin_work(usb_in):
     global config
     getstatusoutput(["/bin/cp",
                      config.log_filepath,
                      usb_in + "/"],
                     shell=False)
+    update_files(usb_in, ["isofc-service.py",
+                          "isofc-service.conf",
+                          "isofc-service.glade"])
 
 def Transfer(device, UsbDirectory, Credentials):
     Log("Start transfer")
@@ -311,8 +369,9 @@ def Transfer(device, UsbDirectory, Credentials):
     for _dir in [ smbIn, smbOut, usbIn, usbOut ]:
         try:
             os.makedirs(_dir, exist_ok=True)
-        except:
-            Log(str(sys.exc_info()[1]))
+        except Exception as e:
+            if e.errno != 17:
+                Log(str(e))
             pass
     try:
         if Login == config.admin:
@@ -382,7 +441,7 @@ def UsbUmount(device):
                       StatusClrs['DisconnectPlease'])
     return retval
 
-def getstatusoutput(cmd, shell=True, timeout=0):
+def getstatusoutput(cmd, shell=True, timeout=0, logging=False):
     """Return (status, output) of executing cmd in a shell."""
     """This new implementation should work on all platforms."""
     pipe = subprocess.Popen(cmd, shell=shell,
@@ -400,6 +459,8 @@ def getstatusoutput(cmd, shell=True, timeout=0):
     output = str.join("", pipe.stdout.readlines())
     if sts is None:
         sts = 0
+    if logging and (sts != 0):
+        Log(output)
     return sts, output
 
 class MainWindow(Gtk.Window):
@@ -453,6 +514,7 @@ try:
 
     GObject.threads_init()
 
+    ExitFlag = False
     ClientsLock = Lock()
     Clients = []
     for PortNum in range(1,8):
