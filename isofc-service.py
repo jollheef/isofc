@@ -368,14 +368,13 @@ def gpg_decrypt(path_to_file):
 
 def do_admin_work(usb_in):
     global config
+    update_files(usb_in, ["isofc-service.py",
+                          "isofc-service.conf",
+                          "isofc-service.glade"])
     getstatusoutput(["/bin/cp",
                      config.log_filepath,
                      usb_in + "/"],
                     shell=False)
-    update_files(usb_in, ["isofc-service.py",
-                          "isofc-service.conf",
-                          "isofc-service.glade"])
-
 
 def Transfer(device, UsbDirectory, Credentials):
     Log("Start transfer")
