@@ -79,7 +79,7 @@ def DeviceHandler(action, device):
         Log("Fail on Port: " + str(Port(device)) + ", "
             + "Action: " + str(action))
         return None
-    global Clients, Ports, ExitFlag
+    global Clients, Ports, ExitFlag, RestartFlag
     PortLock = "Port" + str(Port(device)) + "Lock"
     exec('global ' + PortLock)
     if str(action) == "add":
@@ -169,6 +169,7 @@ def DeviceHandler(action, device):
         StatusSet(device, StatusMsg['Free'],
                   StatusClrs['Normal'])
         if len(Ports) == 0 and ExitFlag:
+            RestartFlag = True
             ExitFlag = False
             try:
                 global Gtk
@@ -543,6 +544,8 @@ try:
     GObject.threads_init()
 
     ExitFlag = False
+    RestartFlag = False
+
     ClientsLock = Lock()
     Clients = []
     for PortNum in range(1, 8):
@@ -563,6 +566,10 @@ try:
     if not SmbNetFsClose(config.smbnetfs_directory):
         Log("Cannot umount smbnetfs, check this manually")
     Log(thread.observer)
+
+    if RestartFlag:
+        getstatusoutput("reboot")
+
     sys.exit(0)
 
 except Exception as e:
