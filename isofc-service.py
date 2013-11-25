@@ -568,7 +568,7 @@ try:
     Log(thread.observer)
 
     if RestartFlag:
-        getstatusoutput("reboot")
+        getstatusoutput("sudo reboot")
 
     sys.exit(0)
 
